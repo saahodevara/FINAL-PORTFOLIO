@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { PortfolioData, Experience, Project } from '../types';
+import { PortfolioData, Experience, Project, PortfolioPurpose } from '../types';
 
 interface PortfolioContextType {
   portfolioData: PortfolioData;
@@ -9,12 +9,18 @@ interface PortfolioContextType {
   removeExperience: (id: string) => void;
   addProject: (proj: Project) => void;
   removeProject: (id: string) => void;
+  selectTemplate: (templateId: string) => void;
+  setPurpose: (purpose: PortfolioPurpose) => void;
+  updateSkills: (skills: string[]) => void;
 }
 
 const initialData: PortfolioData = {
+  templateId: undefined,
+  purpose: 'Job Search',
   name: '',
   bio: '',
   title: '',
+  skills: [],
   github: '',
   linkedin: '',
   email: '',
@@ -30,7 +36,9 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     const stored = localStorage.getItem('portfoli_data');
     if (stored) {
-      setPortfolioData(JSON.parse(stored));
+      // Merge stored data with initialData structure to ensure new fields exist
+      const parsed = JSON.parse(stored);
+      setPortfolioData({ ...initialData, ...parsed });
     }
   }, []);
 
@@ -58,8 +66,30 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setPortfolioData(prev => ({ ...prev, projects: prev.projects.filter(p => p.id !== id) }));
   };
 
+  const selectTemplate = (templateId: string) => {
+    setPortfolioData(prev => ({ ...prev, templateId }));
+  };
+
+  const setPurpose = (purpose: PortfolioPurpose) => {
+    setPortfolioData(prev => ({ ...prev, purpose }));
+  };
+
+  const updateSkills = (skills: string[]) => {
+    setPortfolioData(prev => ({ ...prev, skills }));
+  };
+
   return (
-    <PortfolioContext.Provider value={{ portfolioData, updateBasics, addExperience, removeExperience, addProject, removeProject }}>
+    <PortfolioContext.Provider value={{ 
+      portfolioData, 
+      updateBasics, 
+      addExperience, 
+      removeExperience, 
+      addProject, 
+      removeProject, 
+      selectTemplate,
+      setPurpose,
+      updateSkills
+    }}>
       {children}
     </PortfolioContext.Provider>
   );

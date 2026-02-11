@@ -21,7 +21,6 @@ const GalleryPage: React.FC = () => {
     return matchesFilter && matchesSearch;
   });
 
-  // Prevent body scroll when demo is open
   useEffect(() => {
     if (selectedDemo) {
       document.body.style.overflow = 'hidden';
@@ -31,71 +30,86 @@ const GalleryPage: React.FC = () => {
   }, [selectedDemo]);
 
   return (
-    <div className="py-16 px-4 max-w-7xl mx-auto relative">
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold mb-4">Professional Showcase</h1>
-        <p className="text-slate-400 max-w-2xl mx-auto">Explore high-fidelity portfolios built with Portfoli AI across the modern workforce.</p>
+    <div className="pt-32 pb-24 px-4 max-w-[90rem] mx-auto min-h-screen">
+      
+      {/* Editorial Header */}
+      <div className="mb-20">
+        <h1 className="font-display text-[8vw] leading-none font-black text-white uppercase mb-6">
+          The <span className="text-[#ccff00]">Index</span>
+        </h1>
+        <div className="h-[1px] w-full bg-white/20 mb-8" />
+        <p className="text-xl md:text-2xl text-slate-400 max-w-2xl font-light">
+          A curated collection of high-performance identities.
+        </p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 mb-12">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-          <input 
-            type="text"
-            placeholder="Search by name, role, or skill..."
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl py-3 pl-12 pr-4 text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar">
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row gap-6 mb-16 items-start">
+        <div className="flex flex-wrap gap-2">
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${filter === cat ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all border ${
+                filter === cat 
+                  ? 'bg-[#ccff00] text-black border-[#ccff00]' 
+                  : 'bg-transparent text-slate-400 border-white/20 hover:border-white hover:text-white'
+              }`}
             >
               {cat}
             </button>
           ))}
         </div>
+        <div className="flex-1 w-full md:w-auto relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+          <input 
+            type="text"
+            placeholder="Search the archive..."
+            className="w-full bg-[#111] border border-white/20 rounded-full py-3 pl-12 pr-6 text-white focus:outline-none focus:border-[#ccff00] transition-colors font-mono text-sm"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        {filteredItems.map(item => (
+      {/* Bold Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
+        {filteredItems.map((item) => (
           <div 
             key={item.id} 
             onClick={() => setSelectedDemo(item)}
-            className="group bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/20 transition-all cursor-pointer transform hover:-translate-y-2"
+            className="group cursor-pointer"
           >
-            <div className="h-64 relative overflow-hidden">
+            <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden mb-6 border border-white/10">
               <img 
                 src={item.image} 
                 alt={item.name} 
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125" 
+                className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105" 
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
-                <div className="bg-white text-slate-950 px-6 py-3 rounded-full text-sm font-black uppercase tracking-widest flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform">
-                  <ExternalLink className="w-4 h-4" /> Open Live Demo
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+              
+              <div className="absolute top-4 left-4">
+                 <span className="px-3 py-1 bg-black/50 backdrop-blur text-white border border-white/20 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                   {item.category}
+                 </span>
+              </div>
+
+              <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
+                <div className="w-12 h-12 bg-[#ccff00] rounded-full flex items-center justify-center text-black">
+                  <ExternalLink className="w-5 h-5" />
                 </div>
               </div>
-              <div className="absolute top-4 left-4">
-                <span className="px-3 py-1 bg-blue-600 rounded-full text-[10px] font-black text-white uppercase tracking-[0.2em] shadow-lg shadow-blue-500/40">
-                  {item.category}
-                </span>
-              </div>
             </div>
-            <div className="p-6">
-              <h3 className="font-bold text-xl group-hover:text-blue-400 transition-colors mb-1">{item.name}</h3>
-              <p className="text-sm text-slate-500 mb-6 font-medium">{item.title}</p>
-              <div className="flex flex-wrap gap-2">
-                {item.tech.slice(0, 3).map(t => (
-                  <span key={t} className="text-[10px] bg-slate-800/50 text-slate-400 px-3 py-1 rounded-md uppercase font-bold border border-slate-700/50">
-                    {t}
-                  </span>
-                ))}
-                {item.tech.length > 3 && <span className="text-[10px] text-slate-600 font-bold">+{item.tech.length - 3}</span>}
+
+            <div className="flex justify-between items-end border-b border-white/10 pb-4 group-hover:border-[#ccff00] transition-colors">
+              <div>
+                <h3 className="text-2xl font-display font-bold text-white mb-1 uppercase">{item.name}</h3>
+                <p className="text-sm text-slate-500 font-mono">{item.title}</p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-mono text-[#ccff00] opacity-0 group-hover:opacity-100 transition-opacity">
+                  VIEW_PROFILE
+                </span>
               </div>
             </div>
           </div>
@@ -104,60 +118,32 @@ const GalleryPage: React.FC = () => {
 
       {/* Demo Modal */}
       {selectedDemo && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-slate-950 animate-in fade-in duration-500 overflow-y-auto overflow-x-hidden">
-          {/* Modal Header */}
-          <div className="sticky top-0 z-[110] bg-slate-950/80 backdrop-blur-2xl border-b border-slate-800 p-4">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="fixed inset-0 z-[100] bg-[#080808] animate-in fade-in duration-300 overflow-y-auto">
+          <div className="sticky top-0 z-[110] bg-[#080808]/90 backdrop-blur-md border-b border-white/10 p-4">
+            <div className="max-w-[90rem] mx-auto flex items-center justify-between">
               <button 
                 onClick={() => setSelectedDemo(null)}
-                className="flex items-center gap-2 text-slate-400 hover:text-white transition-all text-xs font-black uppercase tracking-widest"
+                className="flex items-center gap-2 text-white hover:text-[#ccff00] text-xs font-bold uppercase tracking-widest"
               >
-                <ArrowLeft className="w-4 h-4" /> Return to Gallery
+                <ArrowLeft className="w-4 h-4" /> Back to Index
               </button>
               
-              <div className="flex items-center gap-6">
-                <div className="hidden lg:flex items-center gap-3 text-[10px] text-slate-600 font-black tracking-widest">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
-                  STREAMING LIVE DEMO
-                </div>
+              <div className="flex items-center gap-4">
                 <button 
                   onClick={() => navigate('/signup')}
-                  className="bg-white hover:bg-slate-200 text-slate-950 px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all shadow-xl"
+                  className="px-6 py-2 bg-[#ccff00] hover:bg-white text-black rounded-full text-xs font-bold uppercase tracking-widest transition-all"
                 >
-                  <Wand2 className="w-4 h-4 inline mr-2" /> Clone Template
+                  Clone This
                 </button>
-                <button 
-                  onClick={() => setSelectedDemo(null)}
-                  className="p-2 text-slate-500 hover:text-white transition-colors"
-                >
-                  <X className="w-8 h-8" />
+                <button onClick={() => setSelectedDemo(null)}>
+                  <X className="w-6 h-6 text-white hover:text-red-500 transition-colors" />
                 </button>
               </div>
             </div>
           </div>
-
-          {/* Modal Content */}
-          <div className="flex-1 bg-slate-950">
+          <div className="min-h-screen">
             <PortfolioView data={selectedDemo.fullData} category={selectedDemo.category} />
           </div>
-
-          {/* Modal Footer */}
-          <div className="bg-slate-900/50 border-t border-slate-800 py-16 text-center">
-            <h2 className="text-3xl font-black text-white mb-4">Want a site like this?</h2>
-            <p className="text-slate-500 mb-8 max-w-md mx-auto">Generate your professional portfolio in seconds with our AI engine. No coding required.</p>
-            <button 
-              onClick={() => navigate('/signup')}
-              className="bg-blue-600 text-white px-10 py-4 rounded-full font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-2xl shadow-blue-500/20"
-            >
-              Build My Portfolio Now
-            </button>
-          </div>
-        </div>
-      )}
-
-      {filteredItems.length === 0 && (
-        <div className="text-center py-32 bg-slate-900/20 border-2 border-slate-800 border-dashed rounded-[3rem] animate-in fade-in zoom-in">
-          <p className="text-slate-500 font-mono">_NO_RESULTS_FOUND_</p>
         </div>
       )}
     </div>

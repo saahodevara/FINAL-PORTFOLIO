@@ -1,8 +1,8 @@
 
 import React, { useState, useRef } from 'react';
 import { 
-  Cpu, CheckCircle2, AlertCircle, RefreshCw, BarChart3, 
-  Upload, FileText, Target, ChevronDown, Sparkles 
+  Cpu, Target, RefreshCw, BarChart3, 
+  Upload, FileText, ChevronDown, Sparkles 
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -105,101 +105,127 @@ const ATSAnalyzerPage: React.FC = () => {
   };
 
   const getScoreColor = (s: number) => {
-    if (s >= 80) return 'text-green-500';
+    if (s >= 80) return 'text-[#ccff00]';
     if (s >= 50) return 'text-yellow-500';
     return 'text-red-500';
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-16 px-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-blue-600/10 border border-blue-600/20 rounded-2xl">
-            <Cpu className="w-10 h-10 text-blue-500" />
+    <div className="min-h-screen bg-[#080808] pt-32 pb-20 px-4">
+      <div className="max-w-[90rem] mx-auto">
+        
+        {/* Header Section */}
+        <div className="mb-20">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#ccff00]/10 border border-[#ccff00]/20 rounded-full text-[#ccff00] text-[10px] font-bold uppercase tracking-widest mb-6">
+            <Cpu className="w-3 h-3" /> AI Powered Analysis
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">ATS Optimizer <span className="text-blue-500 font-mono text-sm ml-2 px-2 py-0.5 bg-blue-500/10 rounded">AI POWERED</span></h1>
-            <p className="text-slate-400">Intelligent resume scoring based on your specific target career.</p>
-          </div>
+          <h1 className="font-display text-[8vw] lg:text-[6vw] leading-[0.85] font-black text-white uppercase tracking-tighter mb-8">
+            ATS <span className="text-[#ccff00]">OPTIMIZER</span>
+          </h1>
+          <div className="h-[1px] w-full bg-white/10" />
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
-        <div className="space-y-8">
-          {/* Step 1: Role Selection */}
-          <section className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-sm">1</div>
-              <h2 className="text-xl font-bold flex items-center gap-2">Target Job Role <Target className="w-5 h-5 text-blue-500" /></h2>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-16">
+          
+          {/* Main Input Area */}
+          <div className="lg:col-span-7 space-y-12">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative">
-                <select 
-                  disabled={isCustomRole}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-4 px-4 text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none disabled:opacity-50 transition-all"
-                  value={jobRole}
-                  onChange={e => setJobRole(e.target.value)}
-                >
-                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none" />
-              </div>
+            {/* Step 1: Role Selection */}
+            <section className="bg-[#111] border border-white/10 rounded-[2rem] p-8 md:p-12 relative group overflow-hidden">
+               <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-100 transition-opacity">
+                  <span className="font-display font-black text-6xl text-[#ccff00]/10">01</span>
+               </div>
               
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 mb-1">
-                   <input 
-                    type="checkbox" 
-                    id="custom-toggle" 
-                    className="w-4 h-4 rounded border-slate-800 bg-slate-950 text-blue-600 focus:ring-blue-500" 
-                    checked={isCustomRole}
-                    onChange={() => setIsCustomRole(!isCustomRole)}
-                   />
-                   <label htmlFor="custom-toggle" className="text-sm text-slate-400 cursor-pointer hover:text-slate-200">Use Custom Role</label>
+              <h2 className="text-2xl font-display font-bold text-white uppercase mb-8 flex items-center gap-3">
+                <Target className="w-6 h-6 text-[#ccff00]" /> Target Role
+              </h2>
+              
+              <div className="space-y-6">
+                <div className="relative">
+                  <select 
+                    disabled={isCustomRole}
+                    className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl py-5 px-6 text-white focus:outline-none focus:border-[#ccff00] appearance-none disabled:opacity-30 transition-all font-mono text-sm uppercase tracking-wide cursor-pointer"
+                    value={jobRole}
+                    onChange={e => setJobRole(e.target.value)}
+                  >
+                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none" />
                 </div>
-                <input 
-                  disabled={!isCustomRole}
-                  type="text" 
-                  placeholder="e.g. Lead VR/AR Engineer"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-30 transition-all"
-                  value={customRole}
-                  onChange={e => setCustomRole(e.target.value)}
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Step 2: Resume Input */}
-          <section className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-sm">2</div>
-              <h2 className="text-xl font-bold flex items-center gap-2">Resume Source <FileText className="w-5 h-5 text-blue-500" /></h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all hover:bg-blue-600/5 hover:border-blue-600/50 ${fileName ? 'border-blue-600/50 bg-blue-600/5' : 'border-slate-800'}`}
-              >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept=".txt,.md,.rtf"
-                  onChange={handleFileUpload} 
-                />
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-all ${fileName ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-800 text-slate-500'}`}>
-                  <Upload className="w-6 h-6" />
+                
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                     <div className="relative flex items-center">
+                       <input 
+                        type="checkbox" 
+                        id="custom-toggle" 
+                        className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-white/20 bg-[#0a0a0a] checked:border-[#ccff00] checked:bg-[#ccff00] transition-all"
+                        checked={isCustomRole}
+                        onChange={() => setIsCustomRole(!isCustomRole)}
+                       />
+                       <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-black opacity-0 peer-checked:opacity-100">
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                         </svg>
+                       </div>
+                     </div>
+                     <label htmlFor="custom-toggle" className="text-xs font-mono font-bold uppercase text-slate-400 cursor-pointer hover:text-white transition-colors">Define Custom Role</label>
+                  </div>
+                  <input 
+                    disabled={!isCustomRole}
+                    type="text" 
+                    placeholder="e.g. Lead VR/AR Engineer"
+                    className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl py-4 px-6 text-white focus:outline-none focus:border-[#ccff00] disabled:opacity-30 transition-all font-mono text-sm"
+                    value={customRole}
+                    onChange={e => setCustomRole(e.target.value)}
+                  />
                 </div>
-                <p className="font-bold text-slate-200">{fileName || 'Upload Resume File'}</p>
-                <p className="text-xs text-slate-500 mt-2">Support for .txt, .md (Text-based files)</p>
               </div>
+            </section>
 
-              <div className="flex flex-col gap-4">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center">OR PASTE CONTENT</p>
+            {/* Step 2: Resume Input */}
+            <section className="bg-[#111] border border-white/10 rounded-[2rem] p-8 md:p-12 relative group overflow-hidden">
+               <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-100 transition-opacity">
+                  <span className="font-display font-black text-6xl text-[#ccff00]/10">02</span>
+               </div>
+
+              <h2 className="text-2xl font-display font-bold text-white uppercase mb-8 flex items-center gap-3">
+                <FileText className="w-6 h-6 text-[#ccff00]" /> Resume Data
+              </h2>
+
+              <div className="space-y-6">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 group/upload ${
+                    fileName 
+                      ? 'border-[#ccff00] bg-[#ccff00]/5' 
+                      : 'border-white/20 hover:border-[#ccff00] hover:bg-white/5'
+                  }`}
+                >
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept=".txt,.md,.rtf"
+                    onChange={handleFileUpload} 
+                  />
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-6 transition-all duration-300 ${fileName ? 'bg-[#ccff00] text-black' : 'bg-white/10 text-slate-400 group-hover/upload:bg-white group-hover/upload:text-black'}`}>
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <p className="font-bold text-white uppercase tracking-wider text-sm mb-2">{fileName || 'Upload Resume File'}</p>
+                  <p className="text-[10px] font-mono text-slate-500 uppercase">.txt or .md format</p>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                     <span className="bg-[#111] px-4 text-[10px] font-mono text-slate-600 uppercase">OR</span>
+                  </div>
+                  <div className="h-[1px] bg-white/10 w-full" />
+                </div>
+
                 <textarea 
-                  className="flex-1 min-h-[160px] bg-slate-950 border border-slate-800 rounded-3xl p-4 text-sm font-mono text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 placeholder-slate-800"
-                  placeholder="Paste your resume text here..."
+                  className="w-full min-h-[200px] bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 text-sm font-mono text-slate-300 focus:outline-none focus:border-[#ccff00] placeholder-slate-700 resize-none transition-colors"
+                  placeholder="Paste raw text content here..."
                   value={text}
                   onChange={e => {
                     setText(e.target.value);
@@ -207,117 +233,130 @@ const ATSAnalyzerPage: React.FC = () => {
                   }}
                 />
               </div>
-            </div>
 
-            <button 
-              onClick={analyzeWithAI}
-              disabled={!text || analyzing}
-              className="w-full mt-8 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-xl shadow-blue-600/20 disabled:opacity-50 group"
-            >
-              {analyzing ? (
-                <>
-                  <RefreshCw className="w-6 h-6 animate-spin" />
-                  AI is analyzing your fit...
-                </>
+              <button 
+                onClick={analyzeWithAI}
+                disabled={!text || analyzing}
+                className="w-full mt-10 py-6 bg-[#ccff00] hover:bg-white text-black rounded-xl font-display font-black text-xl uppercase tracking-widest flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99]"
+              >
+                {analyzing ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    PROCESSING
+                  </>
+                ) : (
+                  <>
+                    RUN ANALYSIS <Sparkles className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            </section>
+          </div>
+
+          {/* Results Sidebar */}
+          <div className="lg:col-span-5">
+            <div className="bg-[#111] border border-white/10 rounded-[2rem] p-8 md:p-10 sticky top-32 min-h-[600px] flex flex-col">
+              <h3 className="text-slate-500 text-[10px] font-mono font-bold uppercase tracking-widest mb-10 text-center border-b border-white/5 pb-6">
+                Analysis Results
+              </h3>
+              
+              {result ? (
+                <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-10 duration-700">
+                  
+                  {/* Score Visualization */}
+                  <div className="flex justify-center mb-12 relative">
+                    <div className="w-48 h-48 relative flex items-center justify-center">
+                       {/* Background Circle */}
+                       <svg className="w-full h-full transform -rotate-90">
+                         <circle
+                           cx="96" cy="96" r="88"
+                           fill="none"
+                           stroke="#1a1a1a"
+                           strokeWidth="8"
+                         />
+                         {/* Progress Circle */}
+                         <circle
+                           cx="96" cy="96" r="88"
+                           fill="none"
+                           stroke="currentColor"
+                           strokeWidth="8"
+                           strokeDasharray={2 * Math.PI * 88}
+                           strokeDashoffset={2 * Math.PI * 88 * (1 - result.score / 100)}
+                           className={`${getScoreColor(result.score)} transition-all duration-1000 ease-out`}
+                         />
+                       </svg>
+                       <div className="absolute inset-0 flex flex-col items-center justify-center">
+                         <span className={`text-6xl font-display font-black ${getScoreColor(result.score)}`}>
+                           {result.score}
+                         </span>
+                         <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-1">Match Rate</span>
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-8 flex-1">
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                         Executive Summary
+                      </h4>
+                      <p className="text-sm font-mono text-white leading-relaxed p-4 bg-white/5 rounded-xl border border-white/10">
+                        {result.roleMatch}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h4 className="text-[10px] font-bold text-[#ccff00] uppercase tracking-widest mb-3">
+                        Detected Keywords
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {result.detectedSkills.map(skill => (
+                          <span key={skill} className="px-3 py-1 bg-[#ccff00]/10 text-[#ccff00] text-[10px] font-bold rounded-full uppercase border border-[#ccff00]/20 tracking-wider">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-3">
+                        Critical Missing Keywords
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {result.missingSkills.map(skill => (
+                          <span key={skill} className="px-3 py-1 bg-red-500/10 text-red-400 text-[10px] font-bold rounded-full uppercase border border-red-500/20 tracking-wider opacity-80">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-white/10">
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+                        Optimization Protocol
+                      </h4>
+                      <ul className="space-y-3">
+                        {result.suggestions.map((s, i) => (
+                          <li key={i} className="flex gap-3 text-xs text-slate-300 leading-relaxed group">
+                            <span className="text-[#ccff00] mt-1">/</span>
+                            <span className="group-hover:text-white transition-colors">{s}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <>
-                  <Sparkles className="w-6 h-6 text-yellow-400 group-hover:scale-125 transition-transform" />
-                  Perform AI Optimization Scan
-                </>
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-600 gap-6 opacity-50">
+                  <div className="w-24 h-24 rounded-full border border-white/10 flex items-center justify-center bg-white/5">
+                    <BarChart3 className="w-8 h-8" />
+                  </div>
+                  <div className="text-center max-w-[200px]">
+                    <p className="font-display font-bold text-white uppercase text-xl mb-2">Awaiting Data</p>
+                    <p className="text-[10px] font-mono uppercase tracking-widest">Input resume & role to initialize scan sequence</p>
+                  </div>
+                </div>
               )}
-            </button>
-          </section>
-        </div>
-
-        {/* Results Sidebar */}
-        <div className="space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl text-center sticky top-24">
-            <h3 className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-8">AI Career Score</h3>
-            
-            {result ? (
-              <div className="space-y-8 animate-in fade-in zoom-in duration-500">
-                <div className="relative inline-flex items-center justify-center">
-                  <svg className="w-48 h-48">
-                    <circle 
-                      className="text-slate-800" 
-                      strokeWidth="10" 
-                      stroke="currentColor" 
-                      fill="transparent" 
-                      r="80" 
-                      cx="96" 
-                      cy="96" 
-                    />
-                    <circle 
-                      className={getScoreColor(result.score)} 
-                      strokeWidth="10" 
-                      strokeDasharray={502.6}
-                      strokeDashoffset={502.6 - (502.6 * result.score) / 100}
-                      strokeLinecap="round" 
-                      stroke="currentColor" 
-                      fill="transparent" 
-                      r="80" 
-                      cx="96" 
-                      cy="96" 
-                      style={{ transition: 'stroke-dashoffset 1s ease-out' }}
-                    />
-                  </svg>
-                  <div className="absolute text-5xl font-black">{result.score}%</div>
-                </div>
-
-                <div className="text-left space-y-6">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <Target className="w-3 h-3" /> Role Match Summary
-                    </h4>
-                    <p className="text-sm text-slate-300 bg-slate-950 p-4 rounded-2xl border border-slate-800 leading-relaxed">
-                      {result.roleMatch}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Top Detected Skills</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {result.detectedSkills.map(skill => (
-                        <span key={skill} className="px-2 py-1 bg-green-500/10 text-green-400 text-[10px] font-bold rounded uppercase border border-green-500/20 tracking-wider">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-xs font-bold text-red-500/60 uppercase tracking-widest mb-3">Critical Gaps</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {result.missingSkills.map(skill => (
-                        <span key={skill} className="px-2 py-1 bg-red-500/10 text-red-400 text-[10px] font-bold rounded uppercase border border-red-500/20 tracking-wider">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-800">
-                    <h4 className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-3">Expert Suggestions</h4>
-                    <ul className="text-xs text-slate-400 space-y-3">
-                      {result.suggestions.map((s, i) => (
-                        <li key={i} className="flex gap-2 items-start leading-relaxed">
-                          <span className="text-blue-500 font-bold">•</span> {s}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="py-20 flex flex-col items-center gap-4 text-slate-700">
-                <div className="w-16 h-16 bg-slate-950 rounded-full flex items-center justify-center border border-slate-800">
-                  <BarChart3 className="w-8 h-8 opacity-20" />
-                </div>
-                <p className="text-xs max-w-[200px] leading-relaxed">
-                  Upload your resume and select your target role to see your match score and AI-powered feedback.
-                </p>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

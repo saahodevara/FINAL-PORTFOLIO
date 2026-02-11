@@ -23,10 +23,25 @@ export interface Project {
   link: string;
 }
 
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  bestFor: string;
+  speedScore: number;
+  previewImage: string;
+  tags: string[];
+}
+
+export type PortfolioPurpose = 'Job Search' | 'Freelance' | 'Personal Brand' | 'Founder' | 'Internship';
+
 export interface PortfolioData {
+  templateId?: string;
+  purpose: PortfolioPurpose;
   name: string;
   bio: string;
   title: string;
+  skills: string[];
   github: string;
   linkedin: string;
   email: string;
@@ -41,5 +56,5 @@ export interface GalleryItem {
   category: 'Developer' | 'Designer' | 'Data Scientist' | 'Marketing' | 'Finance' | 'Writing' | 'Product';
   tech: string[];
   image: string;
-  fullData: PortfolioData; // Added for the interactive demo
+  fullData: PortfolioData;
 }

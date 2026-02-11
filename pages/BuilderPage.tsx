@@ -5,280 +5,633 @@ import { usePortfolio } from '../context/PortfolioContext';
 import { useAuth } from '../context/AuthContext';
 import { 
   User, Briefcase, FolderKanban, Plus, Trash2, Github, Linkedin, 
-  ChevronRight, ChevronLeft, Eye, Save
+  ChevronRight, ChevronLeft, Eye, Wand2, Terminal, Layers, FileText, 
+  LayoutTemplate, Target, Sparkles, Check, X, ArrowRight
 } from 'lucide-react';
+import { TEMPLATES } from '../constants';
+import { GoogleGenAI } from "@google/genai";
+import { PortfolioPurpose } from '../types';
+
+// --- SCHEMA DEFINITIONS ---
+// This allows the form to be dynamic and scalable.
+const FORM_SCHEMA = {
+  identity: {
+    title: "Identity Protocol",
+    fields: [
+      { key: 'name', label: 'Display Name', type: 'text', placeholder: 'e.g. Alex Rivera' },
+      { key: 'title', label: 'Professional Role', type: 'text', placeholder: 'e.g. Full Stack Engineer' },
+      { key: 'email', label: 'Contact Email', type: 'email', placeholder: 'hello@example.com' },
+      { key: 'github', label: 'GitHub Handle', type: 'text', placeholder: 'username', icon: <Github className="w-3 h-3"/> },
+      { key: 'linkedin', label: 'LinkedIn', type: 'text', placeholder: 'profile-url', icon: <Linkedin className="w-3 h-3"/> },
+    ]
+  }
+};
+
+const PURPOSES: { id: PortfolioPurpose; label: string; desc: string }[] = [
+  { id: 'Job Search', label: 'Job Search', desc: 'Optimized for ATS and recruiters. Highlights experience.' },
+  { id: 'Freelance', label: 'Freelance / Agency', desc: 'Showcase services, case studies, and client trust.' },
+  { id: 'Personal Brand', label: 'Personal Brand', desc: 'Focus on your story, blog, and unique voice.' },
+  { id: 'Founder', label: 'Founder / Startup', desc: 'Pitch your vision, product, and background.' },
+  { id: 'Internship', label: 'Student / Internship', desc: 'Highlight education, projects, and potential.' },
+];
 
 const BuilderPage: React.FC = () => {
-  const [step, setStep] = useState(1);
-  const { portfolioData, updateBasics, addExperience, removeExperience, addProject, removeProject } = usePortfolio();
+  const { portfolioData, updateBasics, addExperience, removeExperience, addProject, removeProject, selectTemplate, setPurpose, updateSkills } = usePortfolio();
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Wizard State
+  const [currentPhase, setCurrentPhase] = useState<'PURPOSE' | 'TEMPLATE' | 'BUILD'>('PURPOSE');
+  const [buildStep, setBuildStep] = useState(1); // 1: Identity, 2: Skills, 3: History, 4: Projects
+  
+  // AI State
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<{ field: string, text: string } | null>(null);
 
-  // Temporary state for new experience/project inputs
+  // Local Form State
   const [newExp, setNewExp] = useState({ company: '', role: '', duration: '', description: '' });
   const [newProj, setNewProj] = useState({ name: '', techStack: '', imageUrl: '', description: '', link: '' });
+  const [skillInput, setSkillInput] = useState('');
 
-  const handleAddExp = () => {
-    if (newExp.company && newExp.role) {
-      addExperience({ ...newExp, id: Date.now().toString() });
-      setNewExp({ company: '', role: '', duration: '', description: '' });
-    }
-  };
+  // --- AI GENERATION LOGIC ---
+  const generateWithAI = async (field: string, context: any = {}) => {
+    setAiLoading(field);
+    setAiSuggestion(null);
 
-  const handleAddProj = () => {
-    if (newProj.name) {
-      addProject({ 
-        ...newProj, 
-        id: Date.now().toString(), 
-        techStack: newProj.techStack.split(',').map(s => s.trim()).filter(Boolean) 
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      let prompt = "";
+      const { purpose, title } = portfolioData;
+
+      if (field === 'bio') {
+        prompt = `You are a career coach. Write a professional, 3-sentence bio for a "${title}" whose goal is "${purpose}". 
+        Tone: Confident, modern, and authentic. 
+        Focus on value proposition.`;
+      } else if (field === 'skills') {
+        prompt = `List 12 comma-separated technical and soft skills relevant for a "${title}" aiming for "${purpose}". 
+        Return ONLY the comma-separated list, no numbering.`;
+      } else if (field === 'exp_desc') {
+        prompt = `Write a short, punchy description (2-3 sentences) for a role as "${context.role}" at "${context.company}". 
+        Use action verbs. Optimize for a "${purpose}" portfolio.`;
+      } else if (field === 'proj_desc') {
+        prompt = `Describe a project named "${context.name}" built with "${context.techStack}". 
+        Focus on the technical challenge and solution. Keep it under 40 words.`;
+      }
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
       });
-      setNewProj({ name: '', techStack: '', imageUrl: '', description: '', link: '' });
+
+      const text = response.text?.trim() || "";
+      setAiSuggestion({ field, text });
+
+    } catch (error) {
+      console.error("AI Generation failed", error);
+    } finally {
+      setAiLoading(null);
     }
   };
+
+  const acceptAiSuggestion = () => {
+    if (!aiSuggestion) return;
+    const { field, text } = aiSuggestion;
+
+    if (field === 'bio') updateBasics({ bio: text });
+    if (field === 'skills') {
+      const newSkills = text.split(',').map(s => s.trim()).filter(Boolean);
+      updateSkills([...new Set([...portfolioData.skills, ...newSkills])]);
+    }
+    if (field === 'exp_desc') setNewExp(prev => ({ ...prev, description: text }));
+    if (field === 'proj_desc') setNewProj(prev => ({ ...prev, description: text }));
+
+    setAiSuggestion(null);
+  };
+
+  // --- HANDLERS ---
+  const handleAddSkill = () => {
+    if (skillInput.trim()) {
+      updateSkills([...portfolioData.skills, skillInput.trim()]);
+      setSkillInput('');
+    }
+  };
+
+  const handleRemoveSkill = (skill: string) => {
+    updateSkills(portfolioData.skills.filter(s => s !== skill));
+  };
+
+  // --- RENDERERS ---
+  
+  // PHASE 1: PURPOSE SELECTION
+  if (currentPhase === 'PURPOSE') {
+    return (
+      <div className="min-h-screen pt-32 pb-20 px-4 max-w-5xl mx-auto">
+        <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+           <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#ccff00]/10 border border-[#ccff00]/20 rounded-full text-[#ccff00] text-[10px] font-bold uppercase tracking-widest mb-6">
+            <Target className="w-3 h-3" /> Step 1 / 3
+          </div>
+          <h1 className="font-display text-4xl md:text-6xl font-black text-white uppercase tracking-tighter mb-4">
+            Define Your <span className="text-[#ccff00]">Mission</span>
+          </h1>
+          <p className="text-slate-400 font-mono text-sm max-w-xl mx-auto">
+            Our AI adapts the tone, structure, and content suggestions based on your primary objective.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {PURPOSES.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => {
+                setPurpose(p.id);
+                setCurrentPhase('TEMPLATE');
+              }}
+              className="group bg-[#111] border border-white/10 hover:border-[#ccff00] hover:bg-[#ccff00]/5 p-8 rounded-3xl text-left transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/5 group-hover:bg-[#ccff00] group-hover:text-black flex items-center justify-center mb-6 transition-colors">
+                <Target className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-display font-bold text-white mb-2 uppercase group-hover:text-[#ccff00] transition-colors">{p.label}</h3>
+              <p className="text-sm font-mono text-slate-500 leading-relaxed group-hover:text-slate-300">{p.desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // PHASE 2: TEMPLATE SELECTION
+  if (currentPhase === 'TEMPLATE') {
+    return (
+      <div className="min-h-screen pt-32 pb-20 px-4 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-16">
+          <button onClick={() => setCurrentPhase('PURPOSE')} className="text-slate-500 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
+            <ChevronLeft className="w-4 h-4" /> Back
+          </button>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#ccff00]/10 border border-[#ccff00]/20 rounded-full text-[#ccff00] text-[10px] font-bold uppercase tracking-widest">
+            <LayoutTemplate className="w-3 h-3" /> Step 2 / 3
+          </div>
+        </div>
+
+        <div className="text-center mb-16">
+          <h1 className="font-display text-4xl md:text-6xl font-black text-white uppercase tracking-tighter mb-4">
+            Select Your <span className="text-[#ccff00]">Aesthetic</span>
+          </h1>
+          <p className="text-slate-400 font-mono text-sm">Choose a high-performance foundation.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {TEMPLATES.map(template => (
+            <div 
+              key={template.id} 
+              className="group bg-[#111] border border-white/10 rounded-[2rem] overflow-hidden hover:border-[#ccff00]/50 transition-all duration-500 hover:shadow-[0_0_40px_rgba(204,255,0,0.1)] flex flex-col"
+            >
+              <div className="aspect-[4/3] relative overflow-hidden bg-black">
+                <img src={template.previewImage} alt={template.name} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" />
+                <div className="absolute top-4 right-4 bg-black/80 backdrop-blur px-3 py-1 rounded-full border border-white/10 text-[#ccff00] text-xs font-bold font-mono">
+                  SPEED: {template.speedScore}/100
+                </div>
+              </div>
+              
+              <div className="p-8 flex-1 flex flex-col">
+                <div className="mb-4">
+                  <h3 className="font-display font-bold text-2xl text-white uppercase mb-1">{template.name}</h3>
+                  <div className="flex gap-2">
+                     <span className="px-2 py-0.5 bg-white/10 rounded text-[10px] font-mono text-slate-300 uppercase">{template.bestFor}</span>
+                  </div>
+                </div>
+                <p className="text-slate-400 text-sm mb-6 flex-1 leading-relaxed">
+                  {template.description}
+                </p>
+                <button 
+                  onClick={() => {
+                    selectTemplate(template.id);
+                    setCurrentPhase('BUILD');
+                  }}
+                  className="w-full py-4 bg-white text-black hover:bg-[#ccff00] rounded-xl font-bold font-mono uppercase tracking-widest transition-all text-xs flex items-center justify-center gap-2"
+                >
+                  Use Template <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // PHASE 3: BUILDER FORM
+  const steps = [
+    { id: 1, label: 'Identity', icon: User },
+    { id: 2, label: 'Skills', icon: Sparkles },
+    { id: 3, label: 'History', icon: Briefcase },
+    { id: 4, label: 'Projects', icon: FolderKanban }
+  ];
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
-      <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen pt-32 pb-20 px-4 max-w-6xl mx-auto">
+      
+      {/* Builder Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
         <div>
-          <h1 className="text-3xl font-bold">Project Builder</h1>
-          <p className="text-slate-400">Step {step} of 3: {step === 1 ? 'Basics' : step === 2 ? 'Experience' : 'Projects'}</p>
+          <button onClick={() => setCurrentPhase('TEMPLATE')} className="text-[10px] font-mono text-slate-500 hover:text-white mb-2 flex items-center gap-1 uppercase tracking-widest">
+            <ChevronLeft className="w-3 h-3" /> Change Template
+          </button>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold tracking-tight">Portfolio Architect</h1>
+            <span className="px-3 py-1 bg-[#ccff00]/10 border border-[#ccff00]/20 rounded text-[#ccff00] text-[10px] font-bold uppercase tracking-widest">
+              Mode: {portfolioData.purpose}
+            </span>
+          </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
            <button 
             onClick={() => navigate('/preview')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-6 py-2.5 bg-white text-black rounded-full text-xs font-bold hover:scale-105 transition-transform"
           >
-            <Eye className="w-4 h-4" /> Preview
+            <Eye className="w-3 h-3" /> PREVIEW
           </button>
         </div>
       </div>
 
-      <div className="flex gap-2 mb-12">
-        {[1, 2, 3].map(s => (
-          <div key={s} className={`h-2 flex-1 rounded-full transition-all ${s <= step ? 'bg-blue-600' : 'bg-slate-800'}`} />
-        ))}
-      </div>
-
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl min-h-[500px]">
-        {step === 1 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <User className="w-5 h-5 text-blue-500" /> Basic Information
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Display Name</label>
-                <input 
-                  type="text"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                  placeholder="Full Name"
-                  value={portfolioData.name || user?.name || ''}
-                  onChange={e => updateBasics({ name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Professional Headline</label>
-                <input 
-                  type="text"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                  placeholder="e.g. Full Stack Developer"
-                  value={portfolioData.title || user?.title || ''}
-                  onChange={e => updateBasics({ title: e.target.value })}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">Short Bio</label>
-              <textarea 
-                rows={4}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                placeholder="Briefly describe your expertise..."
-                value={portfolioData.bio}
-                onChange={e => updateBasics({ bio: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2 flex items-center gap-2"><Github className="w-4 h-4"/> GitHub Username</label>
-                <input 
-                  type="text"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                  placeholder="username"
-                  value={portfolioData.github}
-                  onChange={e => updateBasics({ github: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2 flex items-center gap-2"><Linkedin className="w-4 h-4"/> LinkedIn ID</label>
-                <input 
-                  type="text"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                  placeholder="profile-name"
-                  value={portfolioData.linkedin}
-                  onChange={e => updateBasics({ linkedin: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-8">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-blue-500" /> Work Experience
-            </h2>
-            
-            <div className="space-y-4">
-              {portfolioData.experiences.map(exp => (
-                <div key={exp.id} className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold">{exp.role} @ {exp.company}</h3>
-                    <p className="text-sm text-slate-500">{exp.duration}</p>
-                    <p className="text-sm text-slate-400 mt-2">{exp.description.substring(0, 100)}...</p>
-                  </div>
-                  <button onClick={() => removeExperience(exp.id)} className="text-slate-500 hover:text-red-500 transition-colors p-2">
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Navigation Sidebar */}
+        <div className="lg:col-span-3">
+           <div className="sticky top-32 space-y-2">
+              {steps.map(s => (
+                <button 
+                  key={s.id}
+                  onClick={() => setBuildStep(s.id)}
+                  className={`w-full px-4 py-4 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-between group ${
+                    buildStep === s.id 
+                      ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)]' 
+                      : 'bg-[#111] text-slate-500 hover:text-white border border-transparent hover:border-white/10'
+                  }`}
+                >
+                  <span className="flex items-center gap-3">
+                    <s.icon className="w-4 h-4" /> {s.label}
+                  </span>
+                  {buildStep === s.id && <ChevronRight className="w-3 h-3" />}
+                </button>
               ))}
-              {portfolioData.experiences.length === 0 && (
-                <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
-                  <p className="text-slate-500">No work history added yet.</p>
+           </div>
+        </div>
+
+        {/* Form Content */}
+        <div className="lg:col-span-9">
+          <div className="glass-panel rounded-3xl p-1 relative overflow-hidden min-h-[600px]">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20"/>
+            
+            <div className="bg-[#050505] rounded-[22px] p-8 md:p-12 h-full">
+              
+              {/* STEP 1: IDENTITY */}
+              {buildStep === 1 && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <div className="border-b border-white/5 pb-4 mb-8">
+                    <h2 className="text-lg font-mono font-bold text-white mb-1">IDENTITY_PROTOCOL</h2>
+                    <p className="text-xs text-slate-500 font-mono">Core profile data.</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {FORM_SCHEMA.identity.fields.map((field) => (
+                      <div key={field.key} className="space-y-2">
+                        <Label>
+                          {field.icon && <span className="inline-block mr-2 align-text-bottom">{field.icon}</span>}
+                          {field.label}
+                        </Label>
+                        <Input 
+                          type={field.type}
+                          placeholder={field.placeholder}
+                          value={(portfolioData as any)[field.key] || ''}
+                          onChange={e => updateBasics({ [field.key]: e.target.value })}
+                        />
+                      </div>
+                    ))}
+
+                    <div className="md:col-span-2 space-y-2 relative">
+                      <div className="flex justify-between items-end">
+                         <Label>PROFESSIONAL BIO</Label>
+                         <button 
+                           onClick={() => generateWithAI('bio')}
+                           disabled={!!aiLoading}
+                           className="flex items-center gap-1.5 text-[10px] font-bold text-[#ccff00] hover:text-white uppercase tracking-widest transition-colors mb-2 disabled:opacity-50"
+                         >
+                           {aiLoading === 'bio' ? <span className="animate-pulse">Thinking...</span> : <><Wand2 className="w-3 h-3" /> AI GENERATE</>}
+                         </button>
+                      </div>
+                      
+                      {aiSuggestion?.field === 'bio' && (
+                        <div className="mb-4 p-4 bg-[#ccff00]/5 border border-[#ccff00]/20 rounded-xl animate-in zoom-in duration-300">
+                          <p className="text-sm text-slate-200 mb-3 font-mono leading-relaxed">{aiSuggestion.text}</p>
+                          <div className="flex gap-2">
+                            <button onClick={acceptAiSuggestion} className="px-3 py-1.5 bg-[#ccff00] text-black text-[10px] font-bold rounded hover:bg-white uppercase tracking-wider flex items-center gap-2">
+                              <Check className="w-3 h-3" /> Accept
+                            </button>
+                            <button onClick={() => setAiSuggestion(null)} className="px-3 py-1.5 bg-white/5 text-white text-[10px] font-bold rounded hover:bg-white/10 uppercase tracking-wider flex items-center gap-2">
+                              <X className="w-3 h-3" /> Discard
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <textarea 
+                        rows={4}
+                        className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg py-3 px-4 text-slate-200 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 font-mono text-sm transition-all resize-none"
+                        placeholder="Briefly describe your expertise..."
+                        value={portfolioData.bio}
+                        onChange={e => updateBasics({ bio: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
-            </div>
 
-            <div className="p-6 bg-slate-950 border border-slate-800 rounded-2xl space-y-4">
-              <h3 className="font-medium text-slate-300">Add Experience</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <input 
-                  placeholder="Company"
-                  className="bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-50"
-                  value={newExp.company}
-                  onChange={e => setNewExp({...newExp, company: e.target.value})}
-                />
-                <input 
-                  placeholder="Role"
-                  className="bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-50"
-                  value={newExp.role}
-                  onChange={e => setNewExp({...newExp, role: e.target.value})}
-                />
-              </div>
-              <input 
-                placeholder="Duration (e.g. 2021 - Present)"
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-50"
-                value={newExp.duration}
-                onChange={e => setNewExp({...newExp, duration: e.target.value})}
-              />
-              <textarea 
-                placeholder="Description (PAR Method: Problem, Action, Result)"
-                rows={3}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-50"
-                value={newExp.description}
-                onChange={e => setNewExp({...newExp, description: e.target.value})}
-              />
-              <button 
-                onClick={handleAddExp}
-                className="flex items-center gap-2 text-blue-500 hover:text-blue-400 text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" /> Add to List
-              </button>
-            </div>
-          </div>
-        )}
+              {/* STEP 2: SKILLS */}
+              {buildStep === 2 && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <div className="border-b border-white/5 pb-4 mb-8 flex justify-between items-end">
+                    <div>
+                      <h2 className="text-lg font-mono font-bold text-white mb-1">SKILL_MATRIX</h2>
+                      <p className="text-xs text-slate-500 font-mono">Core competencies & technologies.</p>
+                    </div>
+                    <button 
+                       onClick={() => generateWithAI('skills')}
+                       disabled={!!aiLoading || !portfolioData.title}
+                       className="flex items-center gap-1.5 text-[10px] font-bold text-[#ccff00] hover:text-white uppercase tracking-widest transition-colors disabled:opacity-50"
+                     >
+                       {aiLoading === 'skills' ? <span className="animate-pulse">Analyzing...</span> : <><Wand2 className="w-3 h-3" /> AI SUGGEST</>}
+                    </button>
+                  </div>
 
-        {step === 3 && (
-          <div className="space-y-8">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <FolderKanban className="w-5 h-5 text-blue-500" /> Key Projects
-            </h2>
+                  {aiSuggestion?.field === 'skills' && (
+                    <div className="mb-8 p-6 bg-[#ccff00]/5 border border-[#ccff00]/20 rounded-xl animate-in zoom-in duration-300">
+                       <h3 className="text-[#ccff00] text-xs font-bold uppercase tracking-widest mb-4">AI Suggestions</h3>
+                       <div className="flex flex-wrap gap-2 mb-6">
+                         {aiSuggestion.text.split(',').map((s, i) => (
+                           <span key={i} className="px-2 py-1 bg-black/20 text-slate-300 text-xs font-mono rounded border border-white/5">{s.trim()}</span>
+                         ))}
+                       </div>
+                       <div className="flex gap-3">
+                          <button onClick={acceptAiSuggestion} className="px-4 py-2 bg-[#ccff00] text-black text-xs font-bold rounded hover:bg-white uppercase tracking-wider flex items-center gap-2">
+                            <Check className="w-3 h-3" /> Add All Skills
+                          </button>
+                          <button onClick={() => setAiSuggestion(null)} className="px-4 py-2 bg-white/5 text-white text-xs font-bold rounded hover:bg-white/10 uppercase tracking-wider flex items-center gap-2">
+                            <X className="w-3 h-3" /> Discard
+                          </button>
+                       </div>
+                    </div>
+                  )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {portfolioData.projects.map(proj => (
-                <div key={proj.id} className="p-4 bg-slate-950 border border-slate-800 rounded-xl relative group">
-                  <h3 className="font-bold pr-8">{proj.name}</h3>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {proj.techStack.map(tag => (
-                      <span key={tag} className="text-[10px] bg-slate-800 px-2 py-0.5 rounded uppercase">{tag}</span>
+                  <div className="space-y-6">
+                    <div className="flex gap-4">
+                      <Input 
+                        placeholder="Add a skill (e.g. React, Figma, SEO)"
+                        value={skillInput}
+                        onChange={e => setSkillInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleAddSkill()}
+                      />
+                      <button 
+                        onClick={handleAddSkill}
+                        className="px-6 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold uppercase text-xs tracking-wider"
+                      >
+                        Add
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      {portfolioData.skills.map((skill, i) => (
+                        <div key={i} className="group flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/5 hover:border-white/20 rounded-full text-sm font-mono text-slate-300 transition-all">
+                          {skill}
+                          <button onClick={() => handleRemoveSkill(skill)} className="text-slate-600 group-hover:text-red-400">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {portfolioData.skills.length === 0 && (
+                        <span className="text-slate-600 text-xs font-mono italic">No skills recorded yet.</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: EXPERIENCE */}
+              {buildStep === 3 && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                   <div className="border-b border-white/5 pb-4 mb-8">
+                    <h2 className="text-lg font-mono font-bold text-white mb-1">EXPERIENCE_LOG</h2>
+                    <p className="text-xs text-slate-500 font-mono">Career history.</p>
+                  </div>
+                
+                  <div className="space-y-4 mb-12">
+                    {portfolioData.experiences.map(exp => (
+                      <div key={exp.id} className="p-6 bg-white/5 border border-white/5 rounded-xl flex justify-between items-start group hover:border-white/20 transition-all">
+                        <div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="font-bold text-white">{exp.role}</h3>
+                            <span className="text-xs font-mono text-slate-500 bg-white/5 px-2 py-1 rounded">@{exp.company}</span>
+                          </div>
+                          <p className="text-xs font-mono text-slate-500 mb-3">{exp.duration}</p>
+                          <p className="text-sm text-slate-400 max-w-2xl">{exp.description}</p>
+                        </div>
+                        <button onClick={() => removeExperience(exp.id)} className="text-slate-600 hover:text-red-500 transition-colors p-2">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     ))}
                   </div>
-                  <button 
-                    onClick={() => removeProject(proj.id)}
-                    className="absolute top-4 right-4 text-slate-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
 
-            <div className="p-6 bg-slate-950 border border-slate-800 rounded-2xl space-y-4">
-              <h3 className="font-medium text-slate-300">Add Project</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <input 
-                  placeholder="Project Name"
-                  className="bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-50"
-                  value={newProj.name}
-                  onChange={e => setNewProj({...newProj, name: e.target.value})}
-                />
-                <input 
-                  placeholder="Tech Stack (comma separated)"
-                  className="bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-50"
-                  value={newProj.techStack}
-                  onChange={e => setNewProj({...newProj, techStack: e.target.value})}
-                />
+                  <div className="p-6 bg-[#0f0f0f] border border-white/5 rounded-xl space-y-4">
+                    <h3 className="font-mono text-xs font-bold text-slate-400 uppercase mb-4">Add Entry</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input placeholder="Company" value={newExp.company} onChange={e => setNewExp({...newExp, company: e.target.value})} />
+                      <Input placeholder="Role" value={newExp.role} onChange={e => setNewExp({...newExp, role: e.target.value})} />
+                    </div>
+                    <Input placeholder="Duration (e.g. 2021 - Present)" value={newExp.duration} onChange={e => setNewExp({...newExp, duration: e.target.value})} />
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-end">
+                         <Label>DESCRIPTION</Label>
+                         <button 
+                           onClick={() => generateWithAI('exp_desc', { role: newExp.role, company: newExp.company })}
+                           disabled={!!aiLoading || !newExp.role}
+                           className="flex items-center gap-1.5 text-[10px] font-bold text-[#ccff00] hover:text-white uppercase tracking-widest transition-colors mb-2 disabled:opacity-50"
+                         >
+                           {aiLoading === 'exp_desc' ? <span className="animate-pulse">Thinking...</span> : <><Wand2 className="w-3 h-3" /> AI SUGGEST</>}
+                         </button>
+                      </div>
+
+                      {aiSuggestion?.field === 'exp_desc' && (
+                        <div className="mb-4 p-4 bg-[#ccff00]/5 border border-[#ccff00]/20 rounded-xl animate-in zoom-in duration-300">
+                          <p className="text-sm text-slate-200 mb-3 font-mono leading-relaxed">{aiSuggestion.text}</p>
+                          <div className="flex gap-2">
+                            <button onClick={acceptAiSuggestion} className="px-3 py-1.5 bg-[#ccff00] text-black text-[10px] font-bold rounded hover:bg-white uppercase tracking-wider flex items-center gap-2">
+                              <Check className="w-3 h-3" /> Accept
+                            </button>
+                            <button onClick={() => setAiSuggestion(null)} className="px-3 py-1.5 bg-white/5 text-white text-[10px] font-bold rounded hover:bg-white/10 uppercase tracking-wider flex items-center gap-2">
+                              <X className="w-3 h-3" /> Discard
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <textarea 
+                        placeholder="Describe your achievements..."
+                        rows={2}
+                        className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg py-3 px-4 text-slate-200 focus:outline-none focus:border-white/30 font-mono text-sm"
+                        value={newExp.description}
+                        onChange={e => setNewExp({...newExp, description: e.target.value})}
+                      />
+                    </div>
+                    <button 
+                      onClick={() => {
+                         if (newExp.company && newExp.role) {
+                            addExperience({ ...newExp, id: Date.now().toString() });
+                            setNewExp({ company: '', role: '', duration: '', description: '' });
+                         }
+                      }}
+                      className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-bold text-white uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-3 h-3" /> Append
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: PROJECTS */}
+              {buildStep === 4 && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <div className="border-b border-white/5 pb-4 mb-8">
+                    <h2 className="text-lg font-mono font-bold text-white mb-1">PROJECT_INDEX</h2>
+                    <p className="text-xs text-slate-500 font-mono">Case studies & portfolio items.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+                    {portfolioData.projects.map(proj => (
+                      <div key={proj.id} className="p-4 bg-white/5 border border-white/5 rounded-xl relative group hover:bg-white/10 transition-all">
+                        <div className="flex justify-between items-start mb-2">
+                           <h3 className="font-bold text-white">{proj.name}</h3>
+                           <button 
+                            onClick={() => removeProject(proj.id)}
+                            className="text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-400 mb-3 line-clamp-2">{proj.description}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {proj.techStack.map(tag => (
+                            <span key={tag} className="text-[10px] bg-black border border-white/10 text-slate-400 px-2 py-0.5 rounded font-mono uppercase">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-6 bg-[#0f0f0f] border border-white/5 rounded-xl space-y-4">
+                    <h3 className="font-mono text-xs font-bold text-slate-400 uppercase">New Project</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input placeholder="Project Name" value={newProj.name} onChange={e => setNewProj({...newProj, name: e.target.value})} />
+                      <Input placeholder="Tech Stack (comma separated)" value={newProj.techStack} onChange={e => setNewProj({...newProj, techStack: e.target.value})} />
+                    </div>
+                    <Input placeholder="Image URL" value={newProj.imageUrl} onChange={e => setNewProj({...newProj, imageUrl: e.target.value})} />
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-end">
+                         <Label>DESCRIPTION</Label>
+                         <button 
+                           onClick={() => generateWithAI('proj_desc', { name: newProj.name, techStack: newProj.techStack })}
+                           disabled={!!aiLoading || !newProj.name}
+                           className="flex items-center gap-1.5 text-[10px] font-bold text-[#ccff00] hover:text-white uppercase tracking-widest transition-colors mb-2 disabled:opacity-50"
+                         >
+                           {aiLoading === 'proj_desc' ? <span className="animate-pulse">Thinking...</span> : <><Wand2 className="w-3 h-3" /> AI ENHANCE</>}
+                         </button>
+                      </div>
+                      
+                      {aiSuggestion?.field === 'proj_desc' && (
+                        <div className="mb-4 p-4 bg-[#ccff00]/5 border border-[#ccff00]/20 rounded-xl animate-in zoom-in duration-300">
+                          <p className="text-sm text-slate-200 mb-3 font-mono leading-relaxed">{aiSuggestion.text}</p>
+                          <div className="flex gap-2">
+                            <button onClick={acceptAiSuggestion} className="px-3 py-1.5 bg-[#ccff00] text-black text-[10px] font-bold rounded hover:bg-white uppercase tracking-wider flex items-center gap-2">
+                              <Check className="w-3 h-3" /> Accept
+                            </button>
+                            <button onClick={() => setAiSuggestion(null)} className="px-3 py-1.5 bg-white/5 text-white text-[10px] font-bold rounded hover:bg-white/10 uppercase tracking-wider flex items-center gap-2">
+                              <X className="w-3 h-3" /> Discard
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <textarea 
+                        placeholder="Project Description"
+                        rows={2}
+                        className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg py-3 px-4 text-slate-200 focus:outline-none focus:border-white/30 font-mono text-sm"
+                        value={newProj.description}
+                        onChange={e => setNewProj({...newProj, description: e.target.value})}
+                      />
+                    </div>
+                    <button 
+                      onClick={() => {
+                        if (newProj.name) {
+                          addProject({ 
+                            ...newProj, 
+                            id: Date.now().toString(), 
+                            techStack: newProj.techStack.split(',').map(s => s.trim()).filter(Boolean) 
+                          });
+                          setNewProj({ name: '', techStack: '', imageUrl: '', description: '', link: '' });
+                        }
+                      }}
+                      className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-bold text-white uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-3 h-3" /> Add Project
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-12 pt-8 border-t border-white/5 flex justify-between">
+                <button
+                  onClick={() => setBuildStep(prev => Math.max(1, prev - 1))}
+                  disabled={buildStep === 1}
+                  className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous
+                </button>
+                {buildStep < 4 ? (
+                  <button
+                    onClick={() => setBuildStep(prev => Math.min(4, prev + 1))}
+                    className="flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-200 transition-colors"
+                  >
+                    Next Step <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/preview')}
+                    className="flex items-center gap-2 px-8 py-3 bg-[#ccff00] text-black rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-white transition-colors shadow-[0_0_20px_rgba(204,255,0,0.3)]"
+                  >
+                    Finish & Preview <Eye className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-              <input 
-                placeholder="Image URL"
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-50"
-                value={newProj.imageUrl}
-                onChange={e => setNewProj({...newProj, imageUrl: e.target.value})}
-              />
-              <textarea 
-                placeholder="Project Description"
-                rows={2}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-50"
-                value={newProj.description}
-                onChange={e => setNewProj({...newProj, description: e.target.value})}
-              />
-              <button 
-                onClick={handleAddProj}
-                className="flex items-center gap-2 text-blue-500 hover:text-blue-400 text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" /> Add Project
-              </button>
             </div>
           </div>
-        )}
-
-        <div className="mt-12 flex justify-between items-center pt-8 border-t border-slate-800">
-          <button
-            disabled={step === 1}
-            onClick={() => setStep(step - 1)}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-800 text-slate-400 rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="w-5 h-5" /> Back
-          </button>
-          
-          {step < 3 ? (
-            <button
-              onClick={() => setStep(step + 1)}
-              className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/20"
-            >
-              Continue <ChevronRight className="w-5 h-5" />
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate('/preview')}
-              className="flex items-center gap-2 px-8 py-3 bg-green-600 text-white rounded-xl font-semibold shadow-lg shadow-green-500/20"
-            >
-              Finish & Preview <Eye className="w-5 h-5" />
-            </button>
-          )}
         </div>
       </div>
     </div>
   );
 };
+
+const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <label className="block text-[10px] font-mono font-bold text-slate-500 mb-2 uppercase tracking-widest">
+    {children}
+  </label>
+);
+
+const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
+  <input 
+    {...props}
+    className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg py-3 px-4 text-slate-200 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 font-mono text-sm transition-all placeholder:text-slate-700"
+  />
+);
 
 export default BuilderPage;

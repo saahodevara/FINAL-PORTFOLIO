@@ -1,10 +1,42 @@
 
-import { GalleryItem, PortfolioData } from './types';
+import { GalleryItem, PortfolioData, Template } from './types';
+
+export const TEMPLATES: Template[] = [
+  {
+    id: 'minimal-dev',
+    name: 'Terminal',
+    description: 'A clean, code-focused layout for backend engineers. High contrast, mono fonts.',
+    bestFor: 'Developer',
+    speedScore: 99,
+    previewImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80',
+    tags: ['Fast', 'Minimal', 'Dark']
+  },
+  {
+    id: 'visual-creative',
+    name: 'Canvas',
+    description: 'Image-heavy grid layout for visual storytellers and UI designers.',
+    bestFor: 'Designer',
+    speedScore: 94,
+    previewImage: 'https://images.unsplash.com/photo-1509343256512-d77a5cb3791b?w=600&q=80',
+    tags: ['Gallery', 'Visual', 'Modern']
+  },
+  {
+    id: 'corporate-pro',
+    name: 'Executive',
+    description: 'Polished, structured layout for business professionals and product managers.',
+    bestFor: 'Product Manager',
+    speedScore: 97,
+    previewImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&q=80',
+    tags: ['Clean', 'Structured', 'Professional']
+  }
+];
 
 const createDemoData = (name: string, title: string, bio: string): PortfolioData => ({
   name,
   title,
   bio,
+  purpose: 'Job Search',
+  skills: ['TypeScript', 'React', 'Node.js', 'System Design'],
   github: 'demo-user',
   linkedin: 'demo-user',
   email: 'hello@example.com',

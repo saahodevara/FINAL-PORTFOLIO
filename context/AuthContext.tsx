@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, password: string) => boolean;
   signup: (name: string, title: string, email: string) => void;
   loginWithGitHub: () => void;
+  loginWithGoogle: () => void;
   handleGitHubCallback: (code: string) => Promise<void>;
   logout: () => void;
 }
@@ -71,6 +72,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.assign(githubUrl);
   };
 
+  const loginWithGoogle = () => {
+    // Mock Google Login for prototype
+    setIsLoading(true);
+    setTimeout(() => {
+      const mockGoogleUser: User = {
+        id: 'google_' + Math.random().toString(36).substr(2, 9),
+        name: 'Google User',
+        title: 'Product Creator',
+        email: 'user@gmail.com'
+      };
+      localStorage.setItem('portfoli_user', JSON.stringify(mockGoogleUser));
+      setUser(mockGoogleUser);
+      setIsLoggedIn(true);
+      setIsLoading(false);
+    }, 1500);
+  };
+
   const handleGitHubCallback = async (code: string) => {
     setIsLoading(true);
     try {
@@ -102,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn, isLoading, login, signup, loginWithGitHub, handleGitHubCallback, logout }}>
+    <AuthContext.Provider value={{ user, isLoggedIn, isLoading, login, signup, loginWithGitHub, loginWithGoogle, handleGitHubCallback, logout }}>
       {children}
     </AuthContext.Provider>
   );
