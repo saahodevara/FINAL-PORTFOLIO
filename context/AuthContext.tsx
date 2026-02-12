@@ -61,6 +61,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGitHub = () => {
     const clientId = getGitHubClientId();
+
+    // In a mock/preview environment without a valid Client ID, simulate the login
+    if (clientId === 'mock_client_id') {
+      console.log("Simulating GitHub Login (Mock Mode)");
+      setIsLoading(true);
+      setTimeout(() => {
+        const mockGitHubUser: User = {
+          id: 'gh_' + Math.random().toString(36).substr(2, 9),
+          name: 'GitHub User',
+          title: 'Software Engineer',
+          email: 'user@github.com'
+        };
+        
+        localStorage.setItem('portfoli_user', JSON.stringify(mockGitHubUser));
+        setUser(mockGitHubUser);
+        setIsLoggedIn(true);
+        setIsLoading(false);
+      }, 1500);
+      return;
+    }
+
+    // Real OAuth flow for production/configured environments
     // Use window.location.origin to ensure the callback returns to the correct host
     const redirectUri = window.location.origin + window.location.pathname + '#/auth/callback';
     const scope = 'read:user user:email repo';

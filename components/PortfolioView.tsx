@@ -6,17 +6,35 @@ import { Github, Linkedin, Mail, ExternalLink, Code, Palette, Zap, Menu, X, Arro
 interface PortfolioViewProps {
   data: PortfolioData;
   category?: string;
+  isPreview?: boolean;
 }
 
-const PortfolioView: React.FC<PortfolioViewProps> = ({ data, category = 'Developer' }) => {
+const PortfolioView: React.FC<PortfolioViewProps> = ({ data, category = 'Developer', isPreview = false }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    // If in preview mode, we listen to the specific container scroll
+    const handleScroll = () => {
+      if (isPreview) {
+        const container = document.getElementById('preview-container');
+        if (container) {
+          setIsScrolled(container.scrollTop > 50);
+        }
+      } else {
+        setIsScrolled(window.scrollY > 50);
+      }
+    };
+
+    if (isPreview) {
+      const container = document.getElementById('preview-container');
+      container?.addEventListener('scroll', handleScroll);
+      return () => container?.removeEventListener('scroll', handleScroll);
+    } else {
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+  }, [isPreview]);
 
   // Theme Configuration Mapping
   const getThemeStyles = () => {
@@ -65,8 +83,18 @@ const PortfolioView: React.FC<PortfolioViewProps> = ({ data, category = 'Develop
 
   const scrollToTop = (e: React.MouseEvent) => {
     e.preventDefault();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (isPreview) {
+      document.getElementById('preview-container')?.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
+
+  // Adjust Navbar positioning strategy for Preview Mode
+  // In Preview Mode (inside a scrolling div), 'fixed' positions relative to viewport (bad).
+  // 'sticky' positions relative to scrolling container (good).
+  // We use negative margin to allow content to flow under the glassy nav.
+  const navPositionClass = isPreview ? 'sticky top-0 mb-[-80px]' : 'fixed top-0 left-0 right-0';
 
   return (
     <div className={`w-full min-h-screen pb-24 ${theme.container} transition-colors duration-1000 scroll-smooth relative`}>
@@ -77,7 +105,7 @@ const PortfolioView: React.FC<PortfolioViewProps> = ({ data, category = 'Develop
 
       {/* Internal Portfolio Header */}
       <nav 
-        className={`fixed top-0 left-0 right-0 z-[120] transition-all duration-500 ${isScrolled ? 'py-4' : 'py-8'}`}
+        className={`${navPositionClass} z-[120] transition-all duration-500 ${isScrolled ? 'py-4' : 'py-8'}`}
       >
         <div className={`max-w-6xl mx-auto px-6 flex items-center justify-between transition-all duration-300 ${isScrolled ? 'bg-black/60 backdrop-blur-xl border border-white/10 rounded-full py-3 px-6' : ''}`}>
           <a 

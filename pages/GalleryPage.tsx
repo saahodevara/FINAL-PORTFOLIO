@@ -12,7 +12,7 @@ const GalleryPage: React.FC = () => {
   const [selectedDemo, setSelectedDemo] = useState<GalleryItem | null>(null);
   const navigate = useNavigate();
 
-  const categories = ['All', 'Developer', 'Designer', 'Data Scientist', 'Marketing', 'Finance', 'Writing'];
+  const categories = ['All', 'Developer', 'Designer', 'Data Scientist', 'Product', 'Marketing', 'Finance', 'Writing'];
 
   const filteredItems = DUMMY_GALLERY.filter(item => {
     const matchesFilter = filter === 'All' || item.category === filter;
