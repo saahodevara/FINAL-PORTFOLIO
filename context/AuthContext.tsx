@@ -1,29 +1,29 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  updateProfile,
+  sendEmailVerification
+} from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => boolean;
-  signup: (name: string, title: string, email: string) => void;
-  loginWithGitHub: () => void;
-  loginWithGoogle: () => void;
-  handleGitHubCallback: (code: string) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (name: string, title: string, email: string, password?: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  logout: () => Promise<void>;
+  resendVerification: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Safe environment variable access
-const getGitHubClientId = () => {
-  try {
-    return (typeof process !== 'undefined' && process.env?.VITE_GITHUB_CLIENT_ID) || 'mock_client_id';
-  } catch (e) {
-    return 'mock_client_id';
-  }
-};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -31,118 +31,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('portfoli_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsLoggedIn(true);
-    }
-    setIsLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const appUser: User = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'Anonymous',
+          email: firebaseUser.email || '',
+          title: 'Professional',
+          emailVerified: firebaseUser.emailVerified
+        };
+        setUser(appUser);
+        setIsLoggedIn(true);
+      } else {
+        setUser(null);
+        setIsLoggedIn(false);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = (email: string, password: string) => {
-    const storedUser = localStorage.getItem('portfoli_user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      if (parsedUser.email === email) {
-        setUser(parsedUser);
-        setIsLoggedIn(true);
-        return true;
-      }
+  const login = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const signup = async (name: string, title: string, email: string, password?: string) => {
+    if (!password) throw new Error("Password is required for email signup");
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, { displayName: name });
+    await sendEmailVerification(userCredential.user);
+  };
+
+  const loginWithGoogle = async () => {
+    await signInWithPopup(auth, googleProvider);
+  };
+
+  const logout = async () => {
+    await signOut(auth);
+  };
+
+  const resendVerification = async () => {
+    if (auth.currentUser) {
+      await sendEmailVerification(auth.currentUser);
     }
-    return false;
-  };
-
-  const signup = (name: string, title: string, email: string) => {
-    const newUser: User = { id: Math.random().toString(36).substr(2, 9), name, title, email };
-    localStorage.setItem('portfoli_user', JSON.stringify(newUser));
-    setUser(newUser);
-    setIsLoggedIn(true);
-  };
-
-  const loginWithGitHub = () => {
-    const clientId = getGitHubClientId();
-
-    // In a mock/preview environment without a valid Client ID, simulate the login
-    if (clientId === 'mock_client_id') {
-      console.log("Simulating GitHub Login (Mock Mode)");
-      setIsLoading(true);
-      setTimeout(() => {
-        const mockGitHubUser: User = {
-          id: 'gh_' + Math.random().toString(36).substr(2, 9),
-          name: 'GitHub User',
-          title: 'Software Engineer',
-          email: 'user@github.com'
-        };
-        
-        localStorage.setItem('portfoli_user', JSON.stringify(mockGitHubUser));
-        setUser(mockGitHubUser);
-        setIsLoggedIn(true);
-        setIsLoading(false);
-      }, 1500);
-      return;
-    }
-
-    // Real OAuth flow for production/configured environments
-    // Use window.location.origin to ensure the callback returns to the correct host
-    const redirectUri = window.location.origin + window.location.pathname + '#/auth/callback';
-    const scope = 'read:user user:email repo';
-    const state = Math.random().toString(36).substring(7);
-    
-    const githubUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
-    
-    console.log('Redirecting to GitHub:', githubUrl);
-    window.location.assign(githubUrl);
-  };
-
-  const loginWithGoogle = () => {
-    // Mock Google Login for prototype
-    setIsLoading(true);
-    setTimeout(() => {
-      const mockGoogleUser: User = {
-        id: 'google_' + Math.random().toString(36).substr(2, 9),
-        name: 'Google User',
-        title: 'Product Creator',
-        email: 'user@gmail.com'
-      };
-      localStorage.setItem('portfoli_user', JSON.stringify(mockGoogleUser));
-      setUser(mockGoogleUser);
-      setIsLoggedIn(true);
-      setIsLoading(false);
-    }, 1500);
-  };
-
-  const handleGitHubCallback = async (code: string) => {
-    setIsLoading(true);
-    try {
-      // Simulation of Backend exchange:
-      await new Promise(resolve => setTimeout(resolve, 1500)); 
-      
-      const mockGitHubUser: User = {
-        id: 'gh_' + Math.random().toString(36).substr(2, 9),
-        name: 'GitHub User',
-        title: 'Software Engineer',
-        email: 'user@github.com'
-      };
-      
-      localStorage.setItem('portfoli_user', JSON.stringify(mockGitHubUser));
-      setUser(mockGitHubUser);
-      setIsLoggedIn(true);
-    } catch (error) {
-      console.error('GitHub Auth Failed:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('portfoli_user');
-    setUser(null);
-    setIsLoggedIn(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn, isLoading, login, signup, loginWithGitHub, loginWithGoogle, handleGitHubCallback, logout }}>
+    <AuthContext.Provider value={{ user, isLoggedIn, isLoading, login, signup, loginWithGoogle, logout, resendVerification }}>
       {children}
     </AuthContext.Provider>
   );

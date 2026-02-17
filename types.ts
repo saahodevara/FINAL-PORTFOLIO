@@ -4,6 +4,7 @@ export interface User {
   name: string;
   title: string;
   email: string;
+  emailVerified: boolean;
 }
 
 export interface Experience {
@@ -28,23 +29,27 @@ export interface Template {
   name: string;
   description: string;
   bestFor: string;
-  speedScore: number;
+  speedScore?: number;
   previewImage: string;
   tags: string[];
 }
 
-export type PortfolioPurpose = 'Job Search' | 'Freelance' | 'Personal Brand' | 'Founder' | 'Internship';
+export type PortfolioPurpose = 'Job Search' | 'Business';
 
 export interface PortfolioData {
   templateId?: string;
   purpose: PortfolioPurpose;
-  name: string;
-  bio: string;
+  name: string; // Personal or Business Name
+  bio: string; // Personal Bio or About Business
   title: string;
   skills: string[];
   github: string;
   linkedin: string;
   email: string;
+  // Socials
+  instagram?: string;
+  twitter?: string;
+  // Professional
   experiences: Experience[];
   projects: Project[];
 }

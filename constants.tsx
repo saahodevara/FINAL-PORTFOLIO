@@ -7,7 +7,6 @@ export const TEMPLATES: Template[] = [
     name: 'Terminal',
     description: 'A clean, code-focused layout for backend engineers. High contrast, mono fonts.',
     bestFor: 'Developer',
-    speedScore: 99,
     previewImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80',
     tags: ['Fast', 'Minimal', 'Dark']
   },
@@ -16,7 +15,6 @@ export const TEMPLATES: Template[] = [
     name: 'Canvas',
     description: 'Image-heavy grid layout for visual storytellers and UI designers.',
     bestFor: 'Designer',
-    speedScore: 94,
     previewImage: 'https://images.unsplash.com/photo-1509343256512-d77a5cb3791b?w=600&q=80',
     tags: ['Gallery', 'Visual', 'Modern']
   },
@@ -25,16 +23,31 @@ export const TEMPLATES: Template[] = [
     name: 'Executive',
     description: 'Polished, structured layout for business professionals and product managers.',
     bestFor: 'Product Manager',
-    speedScore: 97,
     previewImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&q=80',
     tags: ['Clean', 'Structured', 'Professional']
+  },
+  {
+    id: 'minimal-clean-1',
+    name: 'Ghost',
+    description: 'A whisper-quiet, typography-focused layout. Perfect for writers and minimalists.',
+    bestFor: 'Minimalist',
+    previewImage: 'https://images.unsplash.com/photo-1544476915-ed1370594142?w=600&q=80',
+    tags: ['Typography', 'Minimal', 'Light']
+  },
+  {
+    id: 'bento-dark-1',
+    name: 'Bento Master',
+    description: 'High-density grid layout for businesses with lots of impact projects.',
+    bestFor: 'Creative Agency',
+    previewImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80',
+    tags: ['Bento', 'Dark', 'Grid']
   }
 ];
 
 const createDemoData = (
-  name: string, 
-  title: string, 
-  bio: string, 
+  name: string,
+  title: string,
+  bio: string,
   purpose: PortfolioData['purpose'],
   skills: string[],
   projects: PortfolioData['projects'],
@@ -65,7 +78,7 @@ export const DUMMY_GALLERY: GalleryItem[] = [
       'Kai Ro',
       'Creative Technologist',
       'Merging code and art to create immersive web experiences. Specializing in WebGL and interactive 3D environments.',
-      'Freelance',
+      'Job Search',
       ['Three.js', 'React-Three-Fiber', 'GLSL', 'Typescript', 'Blender'],
       [
         {
@@ -151,7 +164,7 @@ export const DUMMY_GALLERY: GalleryItem[] = [
       'Lila Banks',
       'Product Designer',
       'Crafting intuitive digital interfaces with a focus on accessibility and motion. Believer in "Less is More".',
-      'Personal Brand',
+      'Job Search',
       ['Figma', 'UI/UX', 'Interaction Design', 'Accessibility', 'Prototyping'],
       [
         {
@@ -194,7 +207,7 @@ export const DUMMY_GALLERY: GalleryItem[] = [
       'Mike Chen',
       'Serial Founder',
       'Building profitable micro-SaaS products in public. shipping code and content daily.',
-      'Founder',
+      'Job Search',
       ['Full Stack Dev', 'SEO', 'Product Strategy', 'Next.js', 'PostgreSQL'],
       [
         {
@@ -237,7 +250,7 @@ export const DUMMY_GALLERY: GalleryItem[] = [
       'Dax Cipher',
       'Web3 Engineer',
       'Securing the decentralized web. Auditing smart contracts and building DeFi protocols.',
-      'Freelance',
+      'Job Search',
       ['Solidity', 'Hardhat', 'Rust', 'Cryptography', 'Audit'],
       [
         {
@@ -268,7 +281,7 @@ export const DUMMY_GALLERY: GalleryItem[] = [
       ]
     )
   },
-   // 6. Growth Lead (The Modern Marketer)
+  // 6. Growth Lead (The Modern Marketer)
   {
     id: '6',
     name: 'Sophia Vane',

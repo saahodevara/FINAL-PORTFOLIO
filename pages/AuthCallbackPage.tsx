@@ -18,9 +18,11 @@ const AuthCallbackPage: React.FC = () => {
 
     if (code) {
       processed.current = true;
-      handleGitHubCallback(code)
-        .then(() => navigate('/builder'))
-        .catch(() => navigate('/login?error=auth_failed'));
+      // handleGitHubCallback(code)
+      //   .then(() => navigate('/builder'))
+      //   .catch(() => navigate('/login?error=auth_failed'));
+      console.log("GitHub callback code found:", code);
+      navigate('/');
     } else if (error) {
       navigate('/login?error=' + error);
     }
@@ -37,7 +39,7 @@ const AuthCallbackPage: React.FC = () => {
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
           </div>
         </div>
-        
+
         <div>
           <h1 className="text-2xl font-bold mb-2">Authenticating</h1>
           <p className="text-slate-400 text-sm leading-relaxed">

@@ -24,6 +24,8 @@ const initialData: PortfolioData = {
   github: '',
   linkedin: '',
   email: '',
+  instagram: '',
+  twitter: '',
   experiences: [],
   projects: []
 };
@@ -79,13 +81,13 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   return (
-    <PortfolioContext.Provider value={{ 
-      portfolioData, 
-      updateBasics, 
-      addExperience, 
-      removeExperience, 
-      addProject, 
-      removeProject, 
+    <PortfolioContext.Provider value={{
+      portfolioData,
+      updateBasics,
+      addExperience,
+      removeExperience,
+      addProject,
+      removeProject,
       selectTemplate,
       setPurpose,
       updateSkills
